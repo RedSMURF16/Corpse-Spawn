@@ -1,0 +1,91 @@
+[en] -- RedSMURF
+CORPSE_CHAT_TAG                 = ^4[CORPSE SPAWN]^1
+CORPSE_CHAT_LIMIT               = You've reached the maximum number of corpses ^4%d
+CORPSE_CHAT_NO_CORPSE           = There are no corpses available
+CORPSE_CHAT_NO_DATA             = Corpse Spawn data hasn't been found
+CORPSE_CHAT_NO_ACTION           = Corpse Spawn action is disabled
+CORPSE_CHAT_CREATE_NEW          = ^3%s ^1created
+CORPSE_CHAT_REMOVE_CURRENT      = ^3%s ^1removed
+CORPSE_CHAT_REMOVE_ALL          = All corpses removed
+CORPSE_CHAT_SAVE                = Corpse Spawn data saved in ^4%s
+CORPSE_CHAT_SHOW_CURRENT        = ^3%s ^1visibility is set to %L
+CORPSE_CHAT_SHOW_ALL_SHOWN      = All corpses are now shown
+CORPSE_CHAT_SHOW_ALL_HIDDEN     = All corpses are now hidden
+CORPSE_CHAT_SHOW_ALL_DEFAULT    = All corpses visibility reset
+CORPSE_CHAT_WEAPON_CURRENT      = Weapon forcing for ^3%s ^1is now %L
+CORPSE_CHAT_WEAPON_ALL_ACTIVE   = Weapon forcing has been enabled for all corpses
+CORPSE_CHAT_WEAPON_ALL_INACTIVE = Weapon forcing has been disabled for all corpses
+CORPSE_CHAT_POISON_CURRENT      = ^3%s ^1is now %L
+CORPSE_CHAT_POISON_ALL_POISONED = All corpses are now poisoned
+CORPSE_CHAT_POISON_ALL_CURED    = All corpses are now cured
+CORPSE_CHAT_TEAM_CURRENT        = ^3%s ^1team is now %L
+CORPSE_CHAT_TEAM_ALL_NONE       = All corpses team disabled for all teams
+CORPSE_CHAT_TEAM_ALL_T          = All corpses team enabled for Terrorists
+CORPSE_CHAT_TEAM_ALL_CT         = All corpses team enabled for Counter-Terrorists
+CORPSE_CHAT_TEAM_ALL_BOTH       = All corpses team enabled for all teams
+
+CORPSE_CHAT_SHOWN               = Shown
+CORPSE_CHAT_HIDDEN              = Hidden
+CORPSE_CHAT_DEFAULT             = Default
+CORPSE_CHAT_ACTIVATED           = Activated
+CORPSE_CHAT_DEACTIVATED         = Deactivated
+CORPSE_CHAT_POISONED            = Poisoned
+CORPSE_CHAT_CURED               = Cured
+CORPSE_CHAT_NONE                = None
+CORPSE_CHAT_T                   = Terrorist
+CORPSE_CHAT_CT                  = Counter-Terrorist
+CORPSE_CHAT_BOTH                = Both teams
+
+CORPSE_NAV_NEXT                 = Next
+CORPSE_NAV_BACK                 = Back
+CORPSE_ON                       = \y[ON]
+CORPSE_OFF                      = \r[OFF]
+CORPSE_SHOWN                    = \y[SHOWN]
+CORPSE_HIDDEN                   = \r[HIDDEN]
+CORPSE_DEFAULT                  = \d[DEFAULT]
+CORPSE_ACTIVE                   = \y[ACTIVE]
+CORPSE_INACTIVE                 = \r[INACTIVE]
+CORPSE_POISONED                 = \y[POISONED]
+CORPSE_CURED                    = \r[CURED]
+CORPSE_NONE                     = \y[NONE]
+CORPSE_T                        = \y[T]
+CORPSE_CT                       = \y[CT]
+CORPSE_BOTH                     = \y[BOTH]
+
+CORPSE_MENU_TITLE               = \dCorpse Spawn - Version \y1.0
+CORPSE_MENU_TITLE_PAGE          = \yPage:\r
+CORPSE_ROOT_CREATE              = Create corpse
+CORPSE_ROOT_REMOVE              = Remove corpse
+CORPSE_ROOT_SAVE                = Save data
+CORPSE_ROOT_SHOW                = Visibility settings
+CORPSE_ROOT_WEAPON              = Weapon settings
+CORPSE_ROOT_POISON              = Poison settings
+CORPSE_ROOT_TEAM                = Team settings
+CORPSE_ROOT_ROTATE              = Adjust rotation
+
+CORPSE_REMOVE_CURRENT           = Remove corpse >> \y%s
+CORPSE_REMOVE_ALL               = Remove all corpses
+
+CORPSE_SHOW_CURRENT             = Show corpse >> %s%s %L
+CORPSE_SHOW_ALL_SHOW            = Show all corpses
+CORPSE_SHOW_ALL_HIDE            = Hide all corpses
+CORPSE_SHOW_ALL_DEFAULT         = Reset-Visibility for all corpses
+
+CORPSE_WEAPON_CURRENT           = Force weapon >> %s%s %L
+CORPSE_WEAPON_ALL_ACTIVE        = Activate weapon forcing for all corpses
+CORPSE_WEAPON_ALL_INACTIVE      = Deactivate weapon forcing for all corpses
+
+CORPSE_POISON_CURRENT           = Poison corpse >> %s%s %L
+CORPSE_POISON_ALL_POISON        = Poison all corpses
+CORPSE_POISON_ALL_CURE          = Cure all corpses
+
+CORPSE_TEAM_CURRENT             = Adjust team >> %s %L
+CORPSE_TEAM_ALL_NONE            = Disable for all teams
+CORPSE_TEAM_ALL_T               = Enable for Terrorists
+CORPSE_TEAM_ALL_CT              = Enable for Counter-Terrorist
+CORPSE_TEAM_ALL_BOTH            = Enable for all teams
+
+CORPSE_ROTATE_RIGHT             = Turn right
+CORPSE_ROTATE_LEFT              = Turn left
+CORPSE_ROTATE_GROUND            = Set on ground >> %L
+CORPSE_ROTATE_PLACE             = Place corpse
