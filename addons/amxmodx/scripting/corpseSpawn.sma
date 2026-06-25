@@ -24,7 +24,7 @@
 *	Changelog:
 *       v1.0: Initial release.
 *       v1.1: Added corpse regeneration effect, improved some logic.
-*       v1.2: Added interactive messages and ambient sounds per corpse, config improvements.
+*       v1.3: Added interactive messages and ambient sounds per corpse, config improvements.
 *
 */
 
