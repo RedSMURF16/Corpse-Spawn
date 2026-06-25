@@ -61,7 +61,7 @@
 #define CORPSE_KEY          556677
 #define CORPSE_ARRAY_ITEM   pev_iuser1
 
-new const PLUGIN_VERSION[]          = "1.2"
+new const PLUGIN_VERSION[]          = "1.3"
 new const Float:DELAY_ON_CONNECT    = 1.0
 new const ERROR_FILE[]              = "CorpseSpawn_ERRORS.log"
 
@@ -131,6 +131,7 @@ enum _:MAIN_SETTINGS
     SETTING_DEFAULT_MESSAGE_COUNT,
     Array:SETTING_DEFAULT_SOUND,
     Float:SETTING_DEFAULT_SOUND_COOLDOWN[2],
+    Float:SETTING_DEFAULT_SOUND_DISTANCE,
     SETTING_DEFAULT_SOUND_COUNT,
 
     bool:SETTING_CORPSE_LOAD,
@@ -207,8 +208,8 @@ enum
 enum
 {
     ROOT_CREATE,
-    ROOT_REMOVE,
     ROOT_SHOW,
+    ROOT_REMOVE,
     ROOT_SAVE,
 
     ROOT_NOCLIP = 5,
@@ -258,8 +259,8 @@ new g_szMenuHandler[][MAX_VALUE_LENGTH] =
 {
     "menuHandlerRoot",
     "menuHandlerCreate",
-    "menuHandlerRemove",
     "menuHandlerShow",
+    "menuHandlerRemove",
     "menuHandlerRotate"
 }
 
@@ -559,6 +560,8 @@ ReadFile()
                         }
                         else if ( equali(szKey, "SETTING_DEFAULT_SOUND_COOLDOWN") )
                             parseSetting(DTYPE_FLOAT_RANGE, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_SOUND_COOLDOWN], charsmax(g_eSettings[SETTING_DEFAULT_SOUND_COOLDOWN]))
+                        else if ( equali(szKey, "SETTING_DEFAULT_SOUND_DISTANCE") )
+                            parseSetting(DTYPE_FLOAT, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_SOUND_DISTANCE], charsmax(g_eSettings[SETTING_DEFAULT_SOUND_DISTANCE]))
                         else if ( equali(szKey, "SETTING_CORPSE_LOAD") )
                             parseSetting(DTYPE_BOOL, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_CORPSE_LOAD], charsmax(g_eSettings[SETTING_CORPSE_LOAD]))
                         else if ( equali(szKey, "SETTING_OFFSET_BASE") )
@@ -1160,7 +1163,7 @@ public menuHandlerRotate(id, menu, item)
 
 public corpseTask()
 {
-    new eCorpse[CORPSE], szSound[MAX_VALUE_LENGTH], Float:fCurrentTime
+    new eCorpse[CORPSE], szSound[MAX_VALUE_LENGTH], Float:fOrigin[3], Float:fCurrentTime
     fCurrentTime = get_gametime()
 
     for ( new id = 1; id <= g_iMaxPlayers; id ++ )
@@ -1183,11 +1186,22 @@ public corpseTask()
         if ( eCorpse[CORPSE_NEXT_SOUND]
         && fCurrentTime >= eCorpse[CORPSE_NEXT_SOUND] )
         {
-            ArrayGetArray(eCorpse[CORPSE_SOUND], random(eCorpse[CORPSE_SOUND_COUNT]), szSound)
-            engfunc(EngFunc_EmitSound, eCorpse[CORPSE_ID], CHAN_ITEM, szSound, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
-            eCorpse[CORPSE_NEXT_SOUND] = fCurrentTime + random_float(eCorpse[CORPSE_SOUND_COOLDOWN][0], eCorpse[CORPSE_SOUND_COOLDOWN][1])
+            for ( new j = 1; j <= g_iMaxPlayers; j ++ )
+            {
+                if ( !is_user_alive(j) )
+                    continue
 
-            ArraySetArray(g_aCorpse, i, eCorpse)
+                pev(j, pev_origin, fOrigin)
+                if ( xs_vec_distance(fOrigin, eCorpse[CORPSE_ORIGIN]) <= g_eSettings[SETTING_DEFAULT_SOUND_DISTANCE] )
+                {
+                    ArrayGetArray(eCorpse[CORPSE_SOUND], random(eCorpse[CORPSE_SOUND_COUNT]), szSound)
+                    engfunc(EngFunc_EmitSound, eCorpse[CORPSE_ID], CHAN_ITEM, szSound, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+                    eCorpse[CORPSE_NEXT_SOUND] = fCurrentTime + random_float(eCorpse[CORPSE_SOUND_COOLDOWN][0], eCorpse[CORPSE_SOUND_COOLDOWN][1])
+
+                    ArraySetArray(g_aCorpse, i, eCorpse)
+                    break
+                }
+            }
         }
     }
 }
@@ -1372,6 +1386,7 @@ stock loadDataCorpse(Float:fOrigin[3], Float:fAngles[3], iShow, iFlags, iItem, i
 
     eCorpse[CORPSE_SHOW] = iShow
     eCorpse[CORPSE_FLAGS] = iFlags
+    eCorpse[CORPSE_NEXT_SOUND] = get_gametime() + random_float(eCorpse[CORPSE_SOUND_COOLDOWN][0], eCorpse[CORPSE_SOUND_COOLDOWN][1])
 
     corpseSetBox(eCorpse)
     if ( eCorpse[CORPSE_FLAGS] & FLAG_ANIM )
