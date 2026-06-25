@@ -1,0 +1,49 @@
+[en] -- RedSMURF
+CORPSE_CHAT_TAG                     = ^4[CORPSE SPAWN]^1
+CORPSE_CHAT_LIMIT                   = You've reached the maximum number of Corpses ^4%d
+CORPSE_CHAT_NO_CORPSE               = There are no Corpses available
+CORPSE_CHAT_NO_DATA                 = Corpse Spawn data hasn't been found
+CORPSE_CHAT_NO_ACTION               = Corpse Spawn action is disabled
+CORPSE_CHAT_CREATE_NEW              = ^3%s ^1created
+CORPSE_CHAT_STATUS_CURRENT          = ^3%s ^1is %L
+CORPSE_CHAT_STATUS_ALL_SHOW         = All Corpses are now Shown
+CORPSE_CHAT_STATUS_ALL_HIDE         = All Corpses are now Hidden
+CORPSE_CHAT_STATUS_ALL_DEFAULT      = All Corpses visibility reset to Default
+CORPSE_CHAT_REMOVE_CURRENT          = ^3%s ^1removed
+CORPSE_CHAT_REMOVE_ALL              = All Corpses removed
+CORPSE_CHAT_SAVE                    = Corpse Spawn data saved in ^4%s
+
+CORPSE_CHAT_SHOWN                   = Shown
+CORPSE_CHAT_HIDDEN                  = Hidden
+CORPSE_CHAT_DEFAULT                 = reset to Default
+
+CORPSE_NAV_NEXT                     = Next
+CORPSE_NAV_BACK                     = Back
+CORPSE_ON                           = \y[ON]
+CORPSE_OFF                          = \r[OFF]
+CORPSE_SHOWN                        = \y[SHOWN]
+CORPSE_HIDDEN                       = \r[HIDDEN]
+CORPSE_DEFAULT                      = \d[DEFAULT]
+
+CORPSE_MENU_TITLE                   = \dCorpse Spawn - Version \y%s
+CORPSE_MENU_TITLE_PAGE              = \yPage:\r
+CORPSE_ROOT_CREATE                  = Create Corpse
+CORPSE_ROOT_REMOVE                  = Remove Corpse
+CORPSE_ROOT_SHOW                    = Visibility settings
+CORPSE_ROOT_SAVE                    = Save data
+CORPSE_ROOT_NOCLIP                  = Toggle noclip %L
+CORPSE_ROOT_GODMODE                 = Toggle godmode %L
+CORPSE_ROOT_ROTATE                  = Adjust rotation
+
+CORPSE_SHOW_CURRENT                 = Show Corpse >> %s%s %L
+CORPSE_SHOW_ALL_SHOW                = Show all Corpses
+CORPSE_SHOW_ALL_HIDE                = Hide all Corpses
+CORPSE_SHOW_ALL_DEFAULT             = Reset-Visibility for all Corpses
+
+CORPSE_REMOVE_CURRENT               = Remove Corpse >> \y%s
+CORPSE_REMOVE_ALL                   = Remove all Corpses
+
+CORPSE_ROTATE_RIGHT                 = Turn right
+CORPSE_ROTATE_LEFT                  = Turn left
+CORPSE_ROTATE_GROUND                = Set on ground >> %L
+CORPSE_ROTATE_PLACE                 = Place Corpse
