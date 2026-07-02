@@ -109,19 +109,10 @@ enum
     SHOW_FORCE_HIDE
 }
 
-enum
-{
-    TEAM_NONE,
-    TEAM_T,
-    TEAM_CT,
-    TEAM_BOTH
-}
-
 enum _:MAIN_SETTINGS
 {
     SETTING_DEFAULT_MODEL[MAX_RESOURCE_PATH_LENGTH],
     SETTING_DEFAULT_FLAGS,
-    SETTING_DEFAULT_TEAM,
 
     SETTING_DEFAULT_SEQUENCE,
     Float:SETTING_DEFAULT_FRAMERATE,
@@ -157,7 +148,6 @@ enum _:CORPSE
     CORPSE_ITEM,
     CORPSE_SHOW,
     CORPSE_FLAGS,
-    CORPSE_TEAM,
     CORPSE_NAME[MAX_VALUE_LENGTH],
     CORPSE_MODEL[MAX_RESOURCE_PATH_LENGTH],
 
@@ -490,7 +480,6 @@ ReadFile()
                         xs_vec_copy(Float:{0.0, 0.0, 0.0}, eCorpse[CORPSE_MINS])
                         xs_vec_copy(Float:{0.0, 0.0, 0.0}, eCorpse[CORPSE_MAXS])
                         eCorpse[CORPSE_FLAGS]               = g_eSettings[SETTING_DEFAULT_FLAGS]
-                        eCorpse[CORPSE_TEAM]                = g_eSettings[SETTING_DEFAULT_TEAM]
 
                         eCorpse[CORPSE_SEQUENCE]            = g_eSettings[SETTING_DEFAULT_SEQUENCE]
                         eCorpse[CORPSE_FRAMERATE]           = g_eSettings[SETTING_DEFAULT_FRAMERATE]
@@ -538,8 +527,6 @@ ReadFile()
                             parseSetting(DTYPE_STRING_MODEL, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_MODEL], charsmax(g_eSettings[SETTING_DEFAULT_MODEL]))
                         else if ( equali(szKey, "SETTING_DEFAULT_FLAGS") )
                             parseSetting(DTYPE_FLAGS, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_FLAGS], charsmax(g_eSettings[SETTING_DEFAULT_FLAGS]))
-                        else if ( equali(szKey, "SETTING_DEFAULT_TEAM") )
-                            parseSetting(DTYPE_INT, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_TEAM], charsmax(g_eSettings[SETTING_DEFAULT_TEAM]))
                         else if ( equali(szKey, "SETTING_DEFAULT_FRAMERATE") )
                             parseSetting(DTYPE_FLOAT, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_FRAMERATE], charsmax(g_eSettings[SETTING_DEFAULT_FRAMERATE]))
                         else if ( equali(szKey, "SETTING_DEFAULT_SEQUENCE") )
@@ -593,8 +580,6 @@ ReadFile()
                             parseSetting(DTYPE_STRING_MODEL, szKey, charsmax(szKey), szValue, charsmax(szValue), eCorpse[CORPSE_MODEL], charsmax(eCorpse[CORPSE_MODEL]), g_eSettings[SETTING_DEFAULT_MODEL])
                         else if ( equali(szKey, "CORPSE_FLAGS") )
                             parseSetting(DTYPE_FLAGS, szKey, charsmax(szKey), szValue, charsmax(szValue), eCorpse[CORPSE_FLAGS], charsmax(eCorpse[CORPSE_FLAGS]), g_eSettings[SETTING_DEFAULT_FLAGS])
-                        else if ( equali(szKey, "CORPSE_TEAM") )
-                            parseSetting(DTYPE_INT, szKey, charsmax(szKey), szValue, charsmax(szValue), eCorpse[CORPSE_TEAM], charsmax(eCorpse[CORPSE_TEAM]), g_eSettings[SETTING_DEFAULT_TEAM])
                         else if ( equali(szKey, "CORPSE_SEQUENCE") )
                             parseSetting(DTYPE_INT, szKey, charsmax(szKey), szValue, charsmax(szValue), eCorpse[CORPSE_SEQUENCE], charsmax(eCorpse[CORPSE_SEQUENCE]), g_eSettings[SETTING_DEFAULT_SEQUENCE])
                         else if ( equali(szKey, "CORPSE_FRAMERATE") )
@@ -1163,17 +1148,23 @@ public menuHandlerRotate(id, menu, item)
 
 public corpseTask()
 {
-    new eCorpse[CORPSE], szSound[MAX_VALUE_LENGTH], Float:fOrigin[3], Float:fCurrentTime
+    new eCorpse[CORPSE], szSound[MAX_VALUE_LENGTH], Float:fOrigin[3], Float:fViewOfs[3], Float:fFraction, Float:fCurrentTime
     fCurrentTime = get_gametime()
 
     for ( new id = 1; id <= g_iMaxPlayers; id ++ )
     {
-        if ( !is_user_alive(id)
-        || !g_ePlayerData[id][PDATA_CORPSE_GHOST]
-        || corpseGet(eCorpse, g_ePlayerData[id][PDATA_CORPSE_GHOST]) == -1 )
+        if ( !is_user_alive(id) )
             continue
 
-        corpseTrace(eCorpse, id)
+        if ( !g_ePlayerData[id][PDATA_CORPSE_GHOST] )
+        {
+            if ( g_ePlayerData[id][PDATA_CORPSE_ACTION] )
+                corpseCheck(id)
+        }
+        else if ( corpseGet(eCorpse, g_ePlayerData[id][PDATA_CORPSE_GHOST]) != -1 )
+        {
+            corpseTrace(eCorpse, id)
+        }
     }
 
     for ( new i = 0; i < g_iCorpse; i ++ )
@@ -1192,7 +1183,13 @@ public corpseTask()
                     continue
 
                 pev(j, pev_origin, fOrigin)
-                if ( xs_vec_distance(fOrigin, eCorpse[CORPSE_ORIGIN]) <= g_eSettings[SETTING_DEFAULT_SOUND_DISTANCE] )
+                pev(j, pev_view_ofs, fViewOfs)
+                xs_vec_add(fOrigin, fViewOfs, fOrigin)
+                engfunc(EngFunc_TraceLine, fOrigin, eCorpse[CORPSE_ORIGIN], IGNORE_MONSTERS, j, 0)
+                get_tr2(0, TR_flFraction, fFraction)
+
+                if ( xs_vec_distance(fOrigin, eCorpse[CORPSE_ORIGIN]) <= g_eSettings[SETTING_DEFAULT_SOUND_DISTANCE]
+                && fFraction >= 1.0 )
                 {
                     ArrayGetArray(eCorpse[CORPSE_SOUND], random(eCorpse[CORPSE_SOUND_COUNT]), szSound)
                     engfunc(EngFunc_EmitSound, eCorpse[CORPSE_ID], CHAN_ITEM, szSound, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
@@ -1311,10 +1308,7 @@ public loadData()
 
     iFile = fopen(szFile, "rt")
     if ( !iFile )
-    {
-        console_print(0, "%L %L", 0, "CORPSE_CHAT_TAG", 0, "CORPSE_CHAT_NO_DATA")
         return PLUGIN_HANDLED
-    }
 
     while( !feof(iFile) )
     {
@@ -1555,6 +1549,64 @@ stock corpseTrace(eCorpse[CORPSE], id)
     corpseSetBox(eCorpse)
     corpseSetOffset(eCorpse)
     set_pev(eCorpse[CORPSE_ID], pev_origin, eCorpse[CORPSE_ORIGIN])
+}
+
+stock corpseCheck(id)
+{
+    new eCorpse[CORPSE], Float:fVec1[3], Float:fVec2[3], Float:fForward[3]
+    new iBest, Float:fBestDist, Float:fTraceLength, Float:fDot, Float:fDist
+
+    pev(id, pev_origin, fVec1)
+    pev(id, pev_view_ofs, fVec2)
+    xs_vec_add(fVec1, fVec2, fVec1)
+
+    pev(id, pev_v_angle, fForward)
+    engfunc(EngFunc_MakeVectors, fForward)
+    global_get(glb_v_forward, fForward)
+
+    xs_vec_mul_scalar(fForward, 9999.9, fVec2)
+    xs_vec_add(fVec2, fVec1, fVec2)
+
+    engfunc(EngFunc_TraceLine, fVec1, fVec2, DONT_IGNORE_MONSTERS, id, 0)
+    get_tr2(0, TR_vecEndPos, fVec2)
+
+    iBest = -1
+    fBestDist = 20.0
+    fTraceLength = get_distance_f(fVec1, fVec2)
+
+    for ( new i = 0; i < g_iCorpse; i ++ )
+    {
+        ArrayGetArray(g_aCorpse, i, eCorpse)
+        xs_vec_sub(eCorpse[CORPSE_ORIGIN], fVec1, fVec2)
+        fDot = xs_vec_dot(fVec2, fForward)
+
+        if ( fDot < 0.0 || fDot > fTraceLength )
+            continue
+
+        xs_vec_copy(fForward, fVec2)
+        xs_vec_mul_scalar(fVec2, fDot, fVec2)
+        xs_vec_add(fVec2, fVec1, fVec2)
+
+        fDist = get_distance_f(eCorpse[CORPSE_ORIGIN], fVec2)
+        if ( fDist < fBestDist )
+        {
+            fBestDist = fDist
+            iBest = i
+        }
+    }
+
+    if ( iBest != -1
+    && g_ePlayerData[id][PDATA_CORPSE_MENU] != iBest )
+    {
+        ArrayGetArray(g_aCorpse, g_ePlayerData[id][PDATA_CORPSE_MENU], eCorpse)
+        eCorpse[CORPSE_FLAGS] &= ~FLAG_SELECT
+        ArraySetArray(g_aCorpse, g_ePlayerData[id][PDATA_CORPSE_MENU], eCorpse)
+
+        ArrayGetArray(g_aCorpse, iBest, eCorpse)
+        eCorpse[CORPSE_FLAGS] |= FLAG_SELECT
+        ArraySetArray(g_aCorpse, iBest, eCorpse)
+        g_ePlayerData[id][PDATA_CORPSE_MENU] = iBest
+    }
 }
 
 stock corpseUse(id)

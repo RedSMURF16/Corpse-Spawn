@@ -2,8 +2,6 @@
 CORPSE_CHAT_TAG                     = ^4[CORPSE SPAWN]^1
 CORPSE_CHAT_LIMIT                   = You've reached the maximum number of Corpses ^4%d
 CORPSE_CHAT_NO_CORPSE               = There are no Corpses available
-CORPSE_CHAT_NO_DATA                 = Corpse Spawn data hasn't been found
-CORPSE_CHAT_NO_ACTION               = Corpse Spawn action is disabled
 CORPSE_CHAT_CREATE_NEW              = ^3%s ^1created
 CORPSE_CHAT_STATUS_CURRENT          = ^3%s ^1is %L
 CORPSE_CHAT_STATUS_ALL_SHOW         = All Corpses are now Shown
