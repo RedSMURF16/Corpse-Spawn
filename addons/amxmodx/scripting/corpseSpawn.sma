@@ -1647,6 +1647,7 @@ stock corpseSetBox(eCorpse[CORPSE])
         Float:fForward[3], Float:fRight[3], Float:fUp[3],
         Float:fCorners[8][3]
 
+    eCorpse[CORPSE_ANGLES][0] = -eCorpse[CORPSE_ANGLES][0]
     engfunc(EngFunc_AngleVectors, eCorpse[CORPSE_ANGLES], fForward, fRight, fUp)
     xs_vec_copy(eCorpse[CORPSE_MINS], fMins)
     xs_vec_copy(eCorpse[CORPSE_MAXS], fMaxs)
@@ -1675,6 +1676,16 @@ stock corpseSetBox(eCorpse[CORPSE])
 
     xs_vec_copy(fMins, eCorpse[CORPSE_MINS])
     xs_vec_copy(fMaxs, eCorpse[CORPSE_MAXS])
+}
+
+public corpseSparks(Float:fOrigin[3])
+{
+    message_begin_f(MSG_PVS, SVC_TEMPENTITY, fOrigin)
+    write_byte(TE_SPARKS)
+    write_coord_f(fOrigin[0])
+    write_coord_f(fOrigin[1])
+    write_coord_f(fOrigin[2])
+    message_end()
 }
 
 stock boxRotate(Float:fLocal[3], Float:fForward[3], Float:fRight[3], Float:fUp[3])
