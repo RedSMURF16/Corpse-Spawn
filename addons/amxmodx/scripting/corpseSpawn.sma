@@ -804,11 +804,15 @@ public menuCreate(iMenu)
 
 public menuHandlerCreate(id, menu, item)
 {
-    if ( item == MENU_EXIT
-    || !is_user_alive(id) )
+    if ( !is_user_alive(id) )
     {
         menu_destroy(menu)
         return PLUGIN_HANDLED
+    }
+    else if ( item == MENU_EXIT )
+    {
+        corpseSound(id, SOUND_MENU_NAV)
+        corpseMenu(id, MENU_ROOT)
     }
 
     corpseCreate(id, item)
@@ -944,6 +948,14 @@ public menuHandlerShow(id, menu, item)
             corpseSound(id, SOUND_MENU_ALERT)
             corpseMenu(id, MENU_SHOW)
         }
+        case MENU_EXIT:
+        {
+            corpseSound(id, SOUND_MENU_NAV)
+            corpseMenu(id, MENU_SHOW)
+
+            g_ePlayerData[id][PDATA_CORPSE_ACTION] = false
+            g_ePlayerData[id][PDATA_CORPSE_MENU] = 0
+        }
         default:
         {
             g_ePlayerData[id][PDATA_CORPSE_ACTION] = false
@@ -1029,6 +1041,14 @@ public menuHandlerRemove(id, menu, item)
 
             corpseSound(id, SOUND_MENU_ALERT)
             corpseMenu(id, MENU_ROOT)
+        }
+        case MENU_EXIT:
+        {
+            corpseSound(id, SOUND_MENU_REMOVE)
+            corpseMenu(id, MENU_REMOVE)
+
+            g_ePlayerData[id][PDATA_CORPSE_MENU] = 0
+            g_ePlayerData[id][PDATA_CORPSE_ACTION] = false
         }
         default:
         {
@@ -1129,10 +1149,21 @@ public menuHandlerRotate(id, menu, item)
             corpseSound(id, SOUND_MENU_NAV)
             corpseMenu(id, MENU_ROOT)
         }
+        case MENU_EXIT:
+        {
+            corpseKill(eCorpse[CORPSE_ID])
+            corpseRemove(iItem)
+            g_ePlayerData[id][PDATA_CORPSE_GHOST] = 0
+            g_ePlayerData[id][PDATA_CORPSE_ACTION] = false
+
+            corpseSound(id, SOUND_MENU_NAV)
+            corpseMenu(id, MENU_CREATE)
+        }
         default:
         {
             corpseKill(eCorpse[CORPSE_ID])
             corpseRemove(iItem)
+
             g_ePlayerData[id][PDATA_CORPSE_GHOST] = 0
             g_ePlayerData[id][PDATA_CORPSE_ACTION] = false
         }
