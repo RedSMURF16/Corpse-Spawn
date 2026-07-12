@@ -174,7 +174,10 @@ enum _:PLAYER_DATA
     PDATA_CORPSE_MENU,
     bool:PDATA_CORPSE_ACTION,
     Float:PDATA_OFFSET,
-    Float:PDATA_NEXT_OFFSET
+    Float:PDATA_NEXT_OFFSET,
+
+    PDATA_MENU_TYPE,
+    bool:PDATA_MENU_TRACE
 }
 
 enum
@@ -370,25 +373,17 @@ public eventRoundStart()
         return PLUGIN_HANDLED
 
     new eCorpse[CORPSE]
-
     for ( new i = 0; i < g_iCorpse; i ++ )
     {
         ArrayGetArray(g_aCorpse, i, eCorpse)
-
         if ( eCorpse[CORPSE_SHOW] != SHOW_DEFAULT )
             continue
 
+        corpseReset(eCorpse)
         if ( eCorpse[CORPSE_SPAWN_CHANCE] >= random_float(0.0, 1.0) )
         {
             eCorpse[CORPSE_FLAGS] |= FLAG_SHOW
-            if ( eCorpse[CORPSE_FLAGS] & FLAG_SOLID )
-                set_pev(eCorpse[CORPSE_ID], pev_solid, SOLID_BBOX)
-        }
-        else
-        {
-            eCorpse[CORPSE_FLAGS] &= ~FLAG_SHOW
-            if ( eCorpse[CORPSE_FLAGS] & FLAG_SOLID )
-                set_pev(eCorpse[CORPSE_ID], pev_solid, SOLID_NOT)
+            set_pev(eCorpse[CORPSE_ID], pev_solid, SOLID_BBOX)
         }
 
         ArraySetArray(g_aCorpse, i, eCorpse)
@@ -404,20 +399,20 @@ ReadFile()
     if ( g_bFileWasRead )
     {
         for ( new id = 1; id <= g_iMaxPlayers; id ++ )
-            if ( is_user_connected(id))
+            if ( is_user_connected(id) )
                 UpdateData(id)
 
         for ( new i = 0; i < g_iCorpse; i ++ )
         {
             ArrayGetArray(g_aCorpse, i, eCorpse)
-            ArrayClear(eCorpse[CORPSE_MESSAGE])
+            ArrayDestroy(eCorpse[CORPSE_MESSAGE])
             ArrayDestroy(eCorpse[CORPSE_SOUND])
         }
 
         for ( new i = 0; i < g_iCorpseConfig; i ++ )
         {
             ArrayGetArray(g_aCorpseConfig, i, eCorpse)
-            ArrayClear(eCorpse[CORPSE_MESSAGE])
+            ArrayDestroy(eCorpse[CORPSE_MESSAGE])
             ArrayDestroy(eCorpse[CORPSE_SOUND])
         }
 
@@ -660,6 +655,9 @@ public corpseInit()
 
 public corpseMenu(id, iType)
 {
+    if ( !is_user_connected(id) )
+        return PLUGIN_HANDLED
+
     new szData[64], iMenu
     formatex(szData, charsmax(szData), "%L", id, "CORPSE_MENU_TITLE", PLUGIN_VERSION)
     iMenu = menu_create(szData, g_szMenuHandler[iType])
@@ -844,6 +842,7 @@ public menuShow(id, iMenu)
     menu_additem(iMenu, szItem)
 
     g_ePlayerData[id][PDATA_CORPSE_ACTION] = true
+    g_ePlayerData[id][PDATA_MENU_TYPE] = MENU_SHOW
     eCorpse[CORPSE_FLAGS] |= FLAG_SELECT
     ArraySetArray(g_aCorpse, g_ePlayerData[id][PDATA_CORPSE_MENU], eCorpse)
 }
@@ -852,8 +851,11 @@ public menuHandlerShow(id, menu, item)
 {
     new eCorpse[CORPSE]
     ArrayGetArray(g_aCorpse, g_ePlayerData[id][PDATA_CORPSE_MENU], eCorpse)
-    eCorpse[CORPSE_FLAGS] &= ~FLAG_SELECT
-    ArraySetArray(g_aCorpse, g_ePlayerData[id][PDATA_CORPSE_MENU], eCorpse)
+    if ( !g_ePlayerData[id][PDATA_MENU_TRACE] )
+    {
+        eCorpse[CORPSE_FLAGS] &= ~FLAG_SELECT
+        ArraySetArray(g_aCorpse, g_ePlayerData[id][PDATA_CORPSE_MENU], eCorpse)
+    }
 
     switch( item )
     {
@@ -950,11 +952,16 @@ public menuHandlerShow(id, menu, item)
         }
         case MENU_EXIT:
         {
-            corpseSound(id, SOUND_MENU_NAV)
-            corpseMenu(id, MENU_SHOW)
+            if ( !g_ePlayerData[id][PDATA_MENU_TRACE] )
+            {
+                corpseSound(id, SOUND_MENU_NAV)
+                corpseMenu(id, MENU_ROOT)
 
-            g_ePlayerData[id][PDATA_CORPSE_ACTION] = false
-            g_ePlayerData[id][PDATA_CORPSE_MENU] = 0
+                g_ePlayerData[id][PDATA_CORPSE_ACTION] = false
+                g_ePlayerData[id][PDATA_CORPSE_MENU] = 0
+            }
+
+            g_ePlayerData[id][PDATA_MENU_TRACE] = false
         }
         default:
         {
@@ -981,6 +988,7 @@ public menuRemove(id, iMenu)
     menu_additem(iMenu, szItem)
 
     g_ePlayerData[id][PDATA_CORPSE_ACTION] = true
+    g_ePlayerData[id][PDATA_MENU_TYPE] = MENU_REMOVE
     eCorpse[CORPSE_FLAGS] |= FLAG_SELECT
     ArraySetArray(g_aCorpse, g_ePlayerData[id][PDATA_CORPSE_MENU], eCorpse)
 }
@@ -990,8 +998,11 @@ public menuHandlerRemove(id, menu, item)
     new eCorpse[CORPSE]
 
     ArrayGetArray(g_aCorpse, g_ePlayerData[id][PDATA_CORPSE_MENU], eCorpse)
-    eCorpse[CORPSE_FLAGS] &= ~FLAG_SELECT
-    ArraySetArray(g_aCorpse, g_ePlayerData[id][PDATA_CORPSE_MENU], eCorpse)
+    if ( !g_ePlayerData[id][PDATA_MENU_TRACE] )
+    {
+        eCorpse[CORPSE_FLAGS] &= ~FLAG_SELECT
+        ArraySetArray(g_aCorpse, g_ePlayerData[id][PDATA_CORPSE_MENU], eCorpse)
+    }
 
     switch( item )
     {
@@ -1044,11 +1055,16 @@ public menuHandlerRemove(id, menu, item)
         }
         case MENU_EXIT:
         {
-            corpseSound(id, SOUND_MENU_REMOVE)
-            corpseMenu(id, MENU_REMOVE)
+            if ( !g_ePlayerData[id][PDATA_MENU_TRACE] )
+            {
+                corpseSound(id, SOUND_MENU_NAV)
+                corpseMenu(id, MENU_ROOT)
 
-            g_ePlayerData[id][PDATA_CORPSE_MENU] = 0
-            g_ePlayerData[id][PDATA_CORPSE_ACTION] = false
+                g_ePlayerData[id][PDATA_CORPSE_MENU] = 0
+                g_ePlayerData[id][PDATA_CORPSE_ACTION] = false
+            }
+
+            g_ePlayerData[id][PDATA_MENU_TRACE] = false
         }
         default:
         {
@@ -1135,6 +1151,7 @@ public menuHandlerRotate(id, menu, item)
             g_ePlayerData[id][PDATA_CORPSE_GHOST] = 0
             g_ePlayerData[id][PDATA_CORPSE_ACTION] = false
 
+            eCorpse[CORPSE_ANGLES][0] = -eCorpse[CORPSE_ANGLES][0]
             eCorpse[CORPSE_FLAGS] |= FLAG_SHOW
             eCorpse[CORPSE_FLAGS] &= ~FLAG_GHOST
             eCorpse[CORPSE_NEXT_SOUND] = get_gametime() + random_float(eCorpse[CORPSE_SOUND_COOLDOWN][0], eCorpse[CORPSE_SOUND_COOLDOWN][1])
@@ -1473,7 +1490,7 @@ public fwdAddToFullPack(es, e, iEnt, iHost, iHostFlags, iPlayer, pSet)
         if ( bHidden )
             set_es(es, ES_RenderMode, kRenderTransAlpha)
     }
-    else if ( eCorpse[CORPSE_FLAGS] & FLAG_GHOST )
+    else if ( eCorpse[CORPSE_FLAGS] & FLAG_GHOST || bHidden )
     {
         set_es(es, ES_RenderMode, kRenderTransAlpha)
         set_es(es, ES_RenderAmt, g_eSettings[SETTING_GHOST_ALPHA])
@@ -1625,10 +1642,9 @@ stock corpseCheck(id)
         eCorpse[CORPSE_FLAGS] &= ~FLAG_SELECT
         ArraySetArray(g_aCorpse, g_ePlayerData[id][PDATA_CORPSE_MENU], eCorpse)
 
-        ArrayGetArray(g_aCorpse, iBest, eCorpse)
-        eCorpse[CORPSE_FLAGS] |= FLAG_SELECT
-        ArraySetArray(g_aCorpse, iBest, eCorpse)
+        g_ePlayerData[id][PDATA_MENU_TRACE] = true
         g_ePlayerData[id][PDATA_CORPSE_MENU] = iBest
+        corpseMenu(id, g_ePlayerData[id][PDATA_MENU_TYPE])
     }
 }
 
@@ -1709,16 +1725,6 @@ stock corpseSetBox(eCorpse[CORPSE])
     xs_vec_copy(fMaxs, eCorpse[CORPSE_MAXS])
 }
 
-public corpseSparks(Float:fOrigin[3])
-{
-    message_begin_f(MSG_PVS, SVC_TEMPENTITY, fOrigin)
-    write_byte(TE_SPARKS)
-    write_coord_f(fOrigin[0])
-    write_coord_f(fOrigin[1])
-    write_coord_f(fOrigin[2])
-    message_end()
-}
-
 stock boxRotate(Float:fLocal[3], Float:fForward[3], Float:fRight[3], Float:fUp[3])
 {
     new Float:fOut[3]
@@ -1782,6 +1788,14 @@ stock corpseSetAnim(eCorpse[CORPSE])
     set_pev(eCorpse[CORPSE_ID], pev_frame, 0)
     set_pev(eCorpse[CORPSE_ID], pev_framerate, eCorpse[CORPSE_FRAMERATE])
     set_pev(eCorpse[CORPSE_ID], pev_animtime, get_gametime())
+}
+
+stock corpseReset(eCorpse[CORPSE])
+{
+    set_pev(eCorpse[CORPSE_ID], pev_solid, SOLID_NOT)
+
+    eCorpse[CORPSE_FLAGS] &= ~FLAG_SHOW
+    eCorpse[CORPSE_NEXT_SOUND] = 0.0
 }
 
 stock corpseSound(iEnt, iSound, bool:bPlayer = true)
