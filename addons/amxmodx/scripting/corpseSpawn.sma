@@ -102,13 +102,6 @@ enum
     FLAG_SELECT             = (1 << 7)
 }
 
-enum
-{
-    SHOW_DEFAULT,
-    SHOW_FORCE_SHOW,
-    SHOW_FORCE_HIDE
-}
-
 enum _:MAIN_SETTINGS
 {
     SETTING_DEFAULT_MODEL[MAX_RESOURCE_PATH_LENGTH],
@@ -144,7 +137,6 @@ enum _:CORPSE
 {
     CORPSE_ID,
     CORPSE_ITEM,
-    CORPSE_SHOW,
     CORPSE_FLAGS,
     CORPSE_NAME[MAX_VALUE_LENGTH],
     CORPSE_MODEL[MAX_RESOURCE_PATH_LENGTH],
@@ -214,8 +206,7 @@ enum
 
     SHOW_CURRENT = 3,
     SHOW_ALL_SHOW,
-    SHOW_ALL_HIDE,
-    SHOW_ALL_DEFAULT
+    SHOW_ALL_HIDE
 }
 
 enum
@@ -264,10 +255,6 @@ new Array:g_aCorpse,
     bool:g_bFileWasRead = false,
     g_iCorpse, g_iCorpseConfig,
     g_iMaxPlayers
-
-new g_szShow[][] = {"CORPSE_DEFAULT", "CORPSE_SHOWN", "CORPSE_HIDDEN"}
-new g_szShowChat[][] = {"CORPSE_CHAT_DEFAULT", "CORPSE_CHAT_SHOWN", "CORPSE_CHAT_HIDDEN"}
-new g_szShowColor[][] = {"\d", "\y", "\r"}
 
 public plugin_init()
 {
@@ -376,7 +363,7 @@ public eventRoundStart()
     for ( new i = 0; i < g_iCorpse; i ++ )
     {
         ArrayGetArray(g_aCorpse, i, eCorpse)
-        if ( eCorpse[CORPSE_SHOW] != SHOW_DEFAULT )
+        if ( !(eCorpse[CORPSE_FLAGS] & FLAG_SHOW) )
             continue
 
         corpseReset(eCorpse)
@@ -829,16 +816,13 @@ public menuShow(id, iMenu)
     ArrayGetArray(g_aCorpse, g_ePlayerData[id][PDATA_CORPSE_MENU], eCorpse)
 
     formatex(szItem, charsmax(szItem), "%L", id, "CORPSE_SHOW_CURRENT",
-    g_szShowColor[eCorpse[CORPSE_SHOW]], eCorpse[CORPSE_NAME], id, g_szShow[eCorpse[CORPSE_SHOW]])
+    eCorpse[CORPSE_FLAGS] & FLAG_SHOW ? "\y" : "\r", eCorpse[CORPSE_NAME], id, eCorpse[CORPSE_FLAGS] & FLAG_SHOW ? "CORPSE_SHOWN" : "CORPSE_HIDDEN")
     menu_additem(iMenu, szItem)
 
     formatex(szItem, charsmax(szItem), "%L", id, "CORPSE_SHOW_ALL_SHOW")
     menu_additem(iMenu, szItem)
 
     formatex(szItem, charsmax(szItem), "%L", id, "CORPSE_SHOW_ALL_HIDE")
-    menu_additem(iMenu, szItem)
-
-    formatex(szItem, charsmax(szItem), "%L", id, "CORPSE_SHOW_ALL_DEFAULT")
     menu_additem(iMenu, szItem)
 
     g_ePlayerData[id][PDATA_CORPSE_ACTION] = true
@@ -881,23 +865,11 @@ public menuHandlerShow(id, menu, item)
         }
         case SHOW_CURRENT:
         {
-            if ( ++ eCorpse[CORPSE_SHOW] > SHOW_FORCE_HIDE )
-                eCorpse[CORPSE_SHOW] = SHOW_DEFAULT
-
-            if ( eCorpse[CORPSE_SHOW] == SHOW_FORCE_SHOW
-            || eCorpse[CORPSE_SHOW] == SHOW_DEFAULT )
-            {
-                set_pev(eCorpse[CORPSE_ID], pev_solid, SOLID_BBOX)
-                eCorpse[CORPSE_FLAGS] |= FLAG_SHOW
-            }
-            else if ( eCorpse[CORPSE_SHOW] == SHOW_FORCE_HIDE )
-            {
-                set_pev(eCorpse[CORPSE_ID], pev_solid, SOLID_NOT)
-                eCorpse[CORPSE_FLAGS] &= ~FLAG_SHOW
-            }
+            eCorpse[CORPSE_FLAGS] ^= FLAG_SHOW
+            set_pev(eCorpse[CORPSE_ID], pev_solid, eCorpse[CORPSE_FLAGS] & FLAG_SHOW ? SOLID_BBOX : SOLID_NOT)
 
             client_print_color(id, id, "%L %L", id, "CORPSE_CHAT_TAG", id, "CORPSE_CHAT_SHOW_CURRENT",
-            eCorpse[CORPSE_NAME], id, g_szShowChat[eCorpse[CORPSE_SHOW]])
+            eCorpse[CORPSE_NAME], id, eCorpse[CORPSE_FLAGS] & FLAG_SHOW ? "CORPSE_CHAT_SHOWN" : "CORPSE_CHAT_HIDDEN")
             ArraySetArray(g_aCorpse, g_ePlayerData[id][PDATA_CORPSE_MENU], eCorpse)
 
             corpseSound(id, SOUND_MENU_NAV)
@@ -909,7 +881,6 @@ public menuHandlerShow(id, menu, item)
             {
                 ArrayGetArray(g_aCorpse, i, eCorpse)
                 eCorpse[CORPSE_FLAGS] |= FLAG_SHOW
-                eCorpse[CORPSE_SHOW] = SHOW_FORCE_SHOW
                 set_pev(eCorpse[CORPSE_ID], pev_solid, SOLID_BBOX)
 
                 ArraySetArray(g_aCorpse, i, eCorpse)
@@ -925,28 +896,12 @@ public menuHandlerShow(id, menu, item)
             {
                 ArrayGetArray(g_aCorpse, i, eCorpse)
                 eCorpse[CORPSE_FLAGS] &= ~FLAG_SHOW
-                eCorpse[CORPSE_SHOW] = SHOW_FORCE_HIDE
                 set_pev(eCorpse[CORPSE_ID], pev_solid, SOLID_NOT)
 
                 ArraySetArray(g_aCorpse, i, eCorpse)
             }
 
             client_print_color(id, id, "%L %L", id, "CORPSE_CHAT_TAG", id, "CORPSE_CHAT_SHOW_ALL_HIDDEN")
-            corpseSound(id, SOUND_MENU_ALERT)
-            corpseMenu(id, MENU_SHOW)
-        }
-        case SHOW_ALL_DEFAULT:
-        {
-            for ( new i = 0; i < g_iCorpse; i ++ )
-            {
-                ArrayGetArray(g_aCorpse, i, eCorpse)
-                eCorpse[CORPSE_FLAGS] |= FLAG_SHOW
-                eCorpse[CORPSE_SHOW] = SHOW_DEFAULT
-                set_pev(eCorpse[CORPSE_ID], pev_solid, SOLID_BBOX)
-                ArraySetArray(g_aCorpse, i, eCorpse)
-            }
-
-            client_print_color(id, id, "%L %L", id, "CORPSE_CHAT_TAG", id, "CORPSE_CHAT_SHOW_ALL_DEFAULT")
             corpseSound(id, SOUND_MENU_ALERT)
             corpseMenu(id, MENU_SHOW)
         }
@@ -1158,8 +1113,7 @@ public menuHandlerRotate(id, menu, item)
 
             if ( eCorpse[CORPSE_FLAGS] & FLAG_ANIM )
                 corpseSetAnim(eCorpse)
-            if ( eCorpse[CORPSE_FLAGS] & FLAG_SOLID )
-                corpseSetSolid(eCorpse)
+            corpseSetSolid(eCorpse, eCorpse[CORPSE_FLAGS] & FLAG_SOLID ? true : false)
             ArraySetArray(g_aCorpse, iItem, eCorpse)
 
             client_print_color(id, id, "%L %L", id, "CORPSE_CHAT_TAG", id, "CORPSE_CHAT_CREATE_NEW", eCorpse[CORPSE_NAME])
@@ -1324,9 +1278,6 @@ public saveData(id)
         eCorpse[CORPSE_ANGLES][0], eCorpse[CORPSE_ANGLES][1], eCorpse[CORPSE_ANGLES][2])
         fputs(iFile, szData)
 
-        formatex(szData, charsmax(szData), "show = %d^n", eCorpse[CORPSE_SHOW])
-        fputs(iFile, szData)
-
         eCorpse[CORPSE_FLAGS] &= ~(FLAG_GHOST | FLAG_SELECT)
         formatex(szData, charsmax(szData), "flags = %d^n", eCorpse[CORPSE_FLAGS])
         fputs(iFile, szData)
@@ -1344,8 +1295,7 @@ public loadData()
 {
     new szFile[128], iFile,
         szData[64], szKey[32], szValue[32],
-        Float:fOrigin[3], Float:fAngles[3], iItem,
-        iShow, iFlags, iCount = -1
+        Float:fOrigin[3], Float:fAngles[3], iItem, iFlags, iCount = -1
 
     get_mapname(szFile, charsmax(szFile))
     format(szFile, charsmax(szFile), "maps/%s_CorpseSpawn.ini", szFile)
@@ -1361,7 +1311,7 @@ public loadData()
         if ( szData[0] == '[' )
         {
             if ( iCount != -1 )
-                loadDataCorpse(fOrigin, fAngles, iShow, iFlags, iItem, iCount)
+                loadDataCorpse(fOrigin, fAngles, iFlags, iItem, iCount)
 
             iCount ++
         }
@@ -1393,10 +1343,6 @@ public loadData()
                 fAngles[1] = str_to_float(szKey)
                 fAngles[2] = str_to_float(szValue)
             }
-            else if ( equal(szKey, "show") )
-            {
-                iShow = str_to_num(szValue)
-            }
             else if ( equal(szKey, "flags") )
             {
                 iFlags = str_to_num(szValue)
@@ -1405,13 +1351,13 @@ public loadData()
     }
 
     if ( iCount != -1 )
-        loadDataCorpse(fOrigin, fAngles, iShow, iFlags, iItem, iCount)
+        loadDataCorpse(fOrigin, fAngles, iFlags, iItem, iCount)
 
     fclose(iFile)
     return PLUGIN_HANDLED
 }
 
-stock loadDataCorpse(Float:fOrigin[3], Float:fAngles[3], iShow, iFlags, iItem, iCount)
+stock loadDataCorpse(Float:fOrigin[3], Float:fAngles[3], iFlags, iItem, iCount)
 {
     new eCorpse[CORPSE]
     corpseCreate(0, iItem)
@@ -1422,15 +1368,13 @@ stock loadDataCorpse(Float:fOrigin[3], Float:fAngles[3], iShow, iFlags, iItem, i
     set_pev(eCorpse[CORPSE_ID], pev_origin, fOrigin)
     set_pev(eCorpse[CORPSE_ID], pev_angles, fAngles)
 
-    eCorpse[CORPSE_SHOW] = iShow
     eCorpse[CORPSE_FLAGS] = iFlags
     eCorpse[CORPSE_NEXT_SOUND] = get_gametime() + random_float(eCorpse[CORPSE_SOUND_COOLDOWN][0], eCorpse[CORPSE_SOUND_COOLDOWN][1])
 
     corpseSetBox(eCorpse)
     if ( eCorpse[CORPSE_FLAGS] & FLAG_ANIM )
         corpseSetAnim(eCorpse)
-    if ( eCorpse[CORPSE_FLAGS] & (FLAG_SHOW | FLAG_SOLID) )
-        corpseSetSolid(eCorpse)
+    corpseSetSolid(eCorpse, eCorpse[CORPSE_FLAGS] & (FLAG_SHOW | FLAG_SOLID) == (FLAG_SHOW | FLAG_SOLID) ? true : false)
 
     ArraySetArray(g_aCorpse, iCount, eCorpse)
 }
@@ -1771,15 +1715,12 @@ stock corpseSetOffset(eCorpse[CORPSE])
     }
 }
 
-stock corpseSetSolid(eCorpse[CORPSE])
+stock corpseSetSolid(eCorpse[CORPSE], bool:bSolid)
 {
-    new Float:fMins[3], Float:fMaxs[3]
-    set_pev(eCorpse[CORPSE_ID], pev_solid, SOLID_BBOX)
+    set_pev(eCorpse[CORPSE_ID], pev_solid, bSolid ? SOLID_BBOX : SOLID_NOT)
     set_pev(eCorpse[CORPSE_ID], pev_movetype, MOVETYPE_NONE)
 
-    xs_vec_copy(eCorpse[CORPSE_MINS], fMins)
-    xs_vec_copy(eCorpse[CORPSE_MAXS], fMaxs)
-    engfunc(EngFunc_SetSize, eCorpse[CORPSE_ID], fMins, fMaxs)
+    engfunc(EngFunc_SetSize, eCorpse[CORPSE_ID], eCorpse[CORPSE_MINS], eCorpse[CORPSE_MAXS])
     set_rendering(eCorpse[CORPSE_ID], kRenderFxNone, 255, 255, 255, kRenderNormal, 255)
 }
 
