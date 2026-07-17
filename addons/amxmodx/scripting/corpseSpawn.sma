@@ -798,6 +798,9 @@ public menuHandlerCreate(id, menu, item)
     {
         corpseSound(id, SOUND_MENU_NAV)
         corpseMenu(id, MENU_ROOT)
+
+        menu_destroy(menu)
+        return PLUGIN_HANDLED
     }
 
     corpseCreate(id, item)
