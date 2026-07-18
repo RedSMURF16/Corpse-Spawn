@@ -1109,7 +1109,6 @@ public menuHandlerRotate(id, menu, item)
             g_ePlayerData[id][PDATA_CORPSE_GHOST] = 0
             g_ePlayerData[id][PDATA_CORPSE_ACTION] = false
 
-            eCorpse[CORPSE_ANGLES][0] = -eCorpse[CORPSE_ANGLES][0]
             eCorpse[CORPSE_FLAGS] |= FLAG_SHOW
             eCorpse[CORPSE_FLAGS] &= ~FLAG_GHOST
             eCorpse[CORPSE_NEXT_SOUND] = get_gametime() + random_float(eCorpse[CORPSE_SOUND_COOLDOWN][0], eCorpse[CORPSE_SOUND_COOLDOWN][1])
@@ -1366,6 +1365,7 @@ stock loadDataCorpse(Float:fOrigin[3], Float:fAngles[3], iFlags, iItem, iCount)
     corpseCreate(0, iItem)
     ArrayGetArray(g_aCorpse, iCount, eCorpse)
 
+    fAngles[0] = -fAngles[0]
     xs_vec_copy(fOrigin, eCorpse[CORPSE_ORIGIN])
     xs_vec_copy(fAngles, eCorpse[CORPSE_ANGLES])
     set_pev(eCorpse[CORPSE_ID], pev_origin, fOrigin)
