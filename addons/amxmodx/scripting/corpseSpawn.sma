@@ -1701,7 +1701,7 @@ stock corpseSetOffset(eCorpse[CORPSE])
         get_tr2(0, TR_vecEndPos, eCorpse[CORPSE_ORIGIN])
     }
 
-    for ( new i = 0; i < 6; i ++ )
+    for ( new i = 5; i >= 0; i -- )
     {
         xs_vec_mul_scalar(g_fDirections[i], 9999.9, fVec1)
         xs_vec_add(fVec1, eCorpse[CORPSE_ORIGIN], fVec1)
