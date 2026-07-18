@@ -616,11 +616,11 @@ public client_authorized(id)
 
 public client_disconnected(id)
 {
-    new iItem
+    new eCorpse[CORPSE], iItem
     if ( g_ePlayerData[id][PDATA_CORPSE_GHOST]
-    && (iItem = pev(g_ePlayerData[id][PDATA_CORPSE_GHOST], CORPSE_ARRAY_ITEM)) != -1 )
+    && (iItem = corpseGet(eCorpse, g_ePlayerData[id][PDATA_CORPSE_GHOST])) != -1 )
     {
-        corpseKill(g_ePlayerData[id][PDATA_CORPSE_GHOST])
+        corpseKill(eCorpse[CORPSE_ID])
         corpseRemove(iItem)
     }
 
