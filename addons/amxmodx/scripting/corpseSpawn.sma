@@ -60,9 +60,18 @@
 #define MAX_ENT             32
 #define CORPSE_KEY          556677
 #define CORPSE_ARRAY_ITEM   pev_iuser1
+#define CORPSE_CHECK        10.0
+#define CORPSE_OFFSET_BASE  120.0
+#define CORPSE_OFFSET_MIN   65.0
+#define CORPSE_OFFSET_MAX   900.0
+#define CORPSE_OFFSET_STEP  10.0
+#define CORPSE_GHOST_ALPHA  120
+#define SOUND_NAV           "buttons/blip1.wav"
+#define SOUND_REMOVE        "buttons/button10.wav"
+#define SOUND_ALERT         "buttons/bell1.wav"
 
 new const PLUGIN_VERSION[]          = "1.3"
-new const Float:DELAY_ON_CONNECT    = 1.0
+new const Float:DELAY_ON_LOAD       = 2.0
 new const ERROR_FILE[]              = "CorpseSpawn_ERRORS.log"
 
 enum
@@ -74,19 +83,16 @@ enum
 
 enum
 {
-    DTYPE_FLOAT,
-    DTYPE_FLOAT_RANGE,
     DTYPE_INT,
-    DTYPE_INT_RANGE,
-    DTYPE_BOOL,
+    DTYPE_FLOAT,
     DTYPE_FLAGS,
-    DTYPE_VECTOR,
-    DTYPE_VECTOR_FLOAT,
-    DTYPE_ARRAY,
-    DTYPE_ARRAY_SOUND,
     DTYPE_STRING_MODEL,
     DTYPE_STRING_SOUND,
-    DTYPE_STRING_SPRITE
+    DTYPE_ARRAY_MESSAGE,
+    DTYPE_ARRAY_MODEL,
+    DTYPE_ARRAY_SOUND,
+    DTYPE_STRING_MODEL_ID,
+    DTYPE_ARRAY_MODEL_ID
 }
 
 enum
@@ -120,15 +126,6 @@ enum _:MAIN_SETTINGS
 
     bool:SETTING_CORPSE_LOAD,
     Float:SETTING_CORPSE_RANGE,
-    Float:SETTING_CORPSE_CHECK,
-    Float:SETTING_OFFSET_BASE,
-    Float:SETTING_OFFSET[2],
-    Float:SETTING_OFFSET_STEP,
-    SETTING_GHOST_ALPHA,
-
-    SETTING_SOUND_MENU_NAV[MAX_RESOURCE_PATH_LENGTH],
-    SETTING_SOUND_MENU_REMOVE[MAX_RESOURCE_PATH_LENGTH],
-    SETTING_SOUND_MENU_ALERT[MAX_RESOURCE_PATH_LENGTH],
 
     SETTING_COLOR_SELECT[3]
 }
@@ -256,6 +253,8 @@ new Array:g_aCorpse,
     g_iCorpse, g_iCorpseConfig,
     g_iMaxPlayers
 
+new HamHook:g_iFwdPreThink, g_iActivePlayers
+
 public plugin_init()
 {
     register_plugin("Corpse Spawn", PLUGIN_VERSION, "RedSMURF")
@@ -272,10 +271,11 @@ public plugin_init()
     register_forward(FM_UpdateClientData, "fwdUpdateClientData", 1)
     register_forward(FM_AddToFullPack, "fwdAddToFullPack", 1)
     RegisterHam(Ham_Spawn, "info_target", "fwdSpawn", 1)
-    RegisterHam(Ham_Player_PreThink, "player", "fwdPreThink")
+    g_iFwdPreThink = RegisterHam(Ham_Player_PreThink, "player", "fwdPreThink")
     RegisterHam(Ham_Killed, "player", "fwdKilled", 1)
 
     register_logevent("eventRoundStart", 2, "1=Round_Start")
+    DisableForward()
     set_task(0.1, "corpseTask", .flags = "b")
 
     corpseInit()
@@ -365,20 +365,10 @@ public eventRoundStart()
 ReadFile()
 {
     new eCorpse[CORPSE]
-
     if ( g_bFileWasRead )
     {
         for ( new id = 1; id <= g_iMaxPlayers; id ++ )
             if ( is_user_connected(id) )
-                UpdateData(id)
-
-        for ( new i = 0; i < g_iCorpse; i ++ )
-        {
-            ArrayGetArray(g_aCorpse, i, eCorpse)
-            ArrayDestroy(eCorpse[CORPSE_MESSAGE])
-            ArrayDestroy(eCorpse[CORPSE_SOUND])
-        }
-
         for ( new i = 0; i < g_iCorpseConfig; i ++ )
         {
             ArrayGetArray(g_aCorpseConfig, i, eCorpse)
@@ -487,66 +477,50 @@ ReadFile()
                     case SECTION_MAIN_SETTINGS:
                     {
                         if ( equali(szKey, "SETTING_DEFAULT_MODEL") )
-                            parseSetting(DTYPE_STRING_MODEL, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_MODEL], charsmax(g_eSettings[SETTING_DEFAULT_MODEL]))
+                            parseSetting(DTYPE_STRING_MODEL, szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_MODEL], charsmax(g_eSettings[SETTING_DEFAULT_MODEL]))
                         else if ( equali(szKey, "SETTING_DEFAULT_FLAGS") )
-                            parseSetting(DTYPE_FLAGS, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_FLAGS], charsmax(g_eSettings[SETTING_DEFAULT_FLAGS]))
+                            parseSetting(DTYPE_FLAGS, szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_FLAGS], charsmax(g_eSettings[SETTING_DEFAULT_FLAGS]))
                         else if ( equali(szKey, "SETTING_DEFAULT_FRAMERATE") )
-                            parseSetting(DTYPE_FLOAT, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_FRAMERATE], charsmax(g_eSettings[SETTING_DEFAULT_FRAMERATE]))
+                            parseSetting(DTYPE_FLOAT, szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_FRAMERATE], charsmax(g_eSettings[SETTING_DEFAULT_FRAMERATE]))
                         else if ( equali(szKey, "SETTING_DEFAULT_SEQUENCE") )
-                            parseSetting(DTYPE_INT, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_SEQUENCE], charsmax(g_eSettings[SETTING_DEFAULT_SEQUENCE]))
+                            parseSetting(DTYPE_INT, szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_SEQUENCE], charsmax(g_eSettings[SETTING_DEFAULT_SEQUENCE]))
                         else if ( equali(szKey, "SETTING_DEFAULT_SPAWN_CHANCE") )
-                            parseSetting(DTYPE_FLOAT, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_SPAWN_CHANCE], charsmax(g_eSettings[SETTING_DEFAULT_SPAWN_CHANCE]))
+                            parseSetting(DTYPE_FLOAT, szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_SPAWN_CHANCE], charsmax(g_eSettings[SETTING_DEFAULT_SPAWN_CHANCE]))
                         else if ( equali(szKey, "SETTING_DEFAULT_MESSAGE") )
                         {
-                            parseSetting(DTYPE_ARRAY, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_MESSAGE], charsmax(g_eSettings[SETTING_DEFAULT_MESSAGE]))
+                            parseSetting(DTYPE_ARRAY_MESSAGE, szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_MESSAGE], charsmax(g_eSettings[SETTING_DEFAULT_MESSAGE]))
                             g_eSettings[SETTING_DEFAULT_MESSAGE_COUNT] ++
                         }
                         else if ( equali(szKey, "SETTING_DEFAULT_MESSAGE_TIMEOUT") )
-                            parseSetting(DTYPE_INT_RANGE, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_MESSAGE_TIMEOUT], charsmax(g_eSettings[SETTING_DEFAULT_MESSAGE_TIMEOUT]))
+                            parseSetting(DTYPE_INT, szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_MESSAGE_TIMEOUT], charsmax(g_eSettings[SETTING_DEFAULT_MESSAGE_TIMEOUT]))
                         else if ( equali(szKey, "SETTING_DEFAULT_SOUND") )
                         {
-                            parseSetting(DTYPE_ARRAY_SOUND, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_SOUND], charsmax(g_eSettings[SETTING_DEFAULT_SOUND]))
+                            parseSetting(DTYPE_ARRAY_SOUND, szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_SOUND], charsmax(g_eSettings[SETTING_DEFAULT_SOUND]))
                             g_eSettings[SETTING_DEFAULT_SOUND_COUNT] ++
                         }
                         else if ( equali(szKey, "SETTING_DEFAULT_SOUND_COOLDOWN") )
-                            parseSetting(DTYPE_FLOAT_RANGE, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_SOUND_COOLDOWN], charsmax(g_eSettings[SETTING_DEFAULT_SOUND_COOLDOWN]))
+                            parseSetting(DTYPE_FLOAT, szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_SOUND_COOLDOWN], charsmax(g_eSettings[SETTING_DEFAULT_SOUND_COOLDOWN]))
                         else if ( equali(szKey, "SETTING_DEFAULT_SOUND_DISTANCE") )
-                            parseSetting(DTYPE_FLOAT, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_SOUND_DISTANCE], charsmax(g_eSettings[SETTING_DEFAULT_SOUND_DISTANCE]))
+                            parseSetting(DTYPE_FLOAT, szValue, charsmax(szValue), g_eSettings[SETTING_DEFAULT_SOUND_DISTANCE], charsmax(g_eSettings[SETTING_DEFAULT_SOUND_DISTANCE]))
                         else if ( equali(szKey, "SETTING_CORPSE_LOAD") )
-                            parseSetting(DTYPE_BOOL, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_CORPSE_LOAD], charsmax(g_eSettings[SETTING_CORPSE_LOAD]))
-                        else if ( equali(szKey, "SETTING_OFFSET_BASE") )
-                            parseSetting(DTYPE_FLOAT, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_OFFSET_BASE], charsmax(g_eSettings[SETTING_OFFSET_BASE]))
+                            parseSetting(DTYPE_INT, szValue, charsmax(szValue), g_eSettings[SETTING_CORPSE_LOAD], charsmax(g_eSettings[SETTING_CORPSE_LOAD]))
                         else if ( equali(szKey, "SETTING_CORPSE_RANGE") )
-                            parseSetting(DTYPE_FLOAT, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_CORPSE_RANGE], charsmax(g_eSettings[SETTING_CORPSE_RANGE]))
-                        else if ( equali(szKey, "SETTING_CORPSE_CHECK") )
-                            parseSetting(DTYPE_FLOAT, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_CORPSE_CHECK], charsmax(g_eSettings[SETTING_CORPSE_CHECK]))
-                        else if ( equali(szKey, "SETTING_OFFSET") )
-                            parseSetting(DTYPE_FLOAT_RANGE, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_OFFSET], charsmax(g_eSettings[SETTING_OFFSET]))
-                        else if ( equali(szKey, "SETTING_OFFSET_STEP") )
-                            parseSetting(DTYPE_FLOAT, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_OFFSET_STEP], charsmax(g_eSettings[SETTING_OFFSET_STEP]))
-                        else if ( equali(szKey, "SETTING_GHOST_ALPHA") )
-                            parseSetting(DTYPE_INT, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_GHOST_ALPHA], charsmax(g_eSettings[SETTING_GHOST_ALPHA]))
-                        else if ( equali(szKey, "SETTING_SOUND_MENU_NAV") )
-                            parseSetting(DTYPE_STRING_SOUND, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_SOUND_MENU_NAV], charsmax(g_eSettings[SETTING_SOUND_MENU_NAV]))
-                        else if ( equali(szKey, "SETTING_SOUND_MENU_REMOVE") )
-                            parseSetting(DTYPE_STRING_SOUND, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_SOUND_MENU_REMOVE], charsmax(g_eSettings[SETTING_SOUND_MENU_REMOVE]))
-                        else if ( equali(szKey, "SETTING_SOUND_MENU_ALERT") )
-                            parseSetting(DTYPE_STRING_SOUND, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_SOUND_MENU_ALERT], charsmax(g_eSettings[SETTING_SOUND_MENU_ALERT]))
+                            parseSetting(DTYPE_FLOAT, szValue, charsmax(szValue), g_eSettings[SETTING_CORPSE_RANGE], charsmax(g_eSettings[SETTING_CORPSE_RANGE]))
                         else if ( equali(szKey, "SETTING_COLOR_SELECT") )
-                            parseSetting(DTYPE_VECTOR, szKey, charsmax(szKey), szValue, charsmax(szValue), g_eSettings[SETTING_COLOR_SELECT], charsmax(g_eSettings[SETTING_COLOR_SELECT]))
+                            parseSetting(DTYPE_INT, szValue, charsmax(szValue), g_eSettings[SETTING_COLOR_SELECT], charsmax(g_eSettings[SETTING_COLOR_SELECT]))
                     }
                     case SECTION_CORPSE:
                     {
                         if ( equali(szKey, "CORPSE_MODEL") )
-                            parseSetting(DTYPE_STRING_MODEL, szKey, charsmax(szKey), szValue, charsmax(szValue), eCorpse[CORPSE_MODEL], charsmax(eCorpse[CORPSE_MODEL]), g_eSettings[SETTING_DEFAULT_MODEL])
+                            parseSetting(DTYPE_STRING_MODEL, szValue, charsmax(szValue), eCorpse[CORPSE_MODEL], charsmax(eCorpse[CORPSE_MODEL]))
                         else if ( equali(szKey, "CORPSE_FLAGS") )
-                            parseSetting(DTYPE_FLAGS, szKey, charsmax(szKey), szValue, charsmax(szValue), eCorpse[CORPSE_FLAGS], charsmax(eCorpse[CORPSE_FLAGS]), g_eSettings[SETTING_DEFAULT_FLAGS])
+                            parseSetting(DTYPE_FLAGS, szValue, charsmax(szValue), eCorpse[CORPSE_FLAGS], charsmax(eCorpse[CORPSE_FLAGS]))
                         else if ( equali(szKey, "CORPSE_SEQUENCE") )
-                            parseSetting(DTYPE_INT, szKey, charsmax(szKey), szValue, charsmax(szValue), eCorpse[CORPSE_SEQUENCE], charsmax(eCorpse[CORPSE_SEQUENCE]), g_eSettings[SETTING_DEFAULT_SEQUENCE])
+                            parseSetting(DTYPE_INT, szValue, charsmax(szValue), eCorpse[CORPSE_SEQUENCE], charsmax(eCorpse[CORPSE_SEQUENCE]))
                         else if ( equali(szKey, "CORPSE_FRAMERATE") )
-                            parseSetting(DTYPE_FLOAT, szKey, charsmax(szKey), szValue, charsmax(szValue), eCorpse[CORPSE_FRAMERATE], charsmax(eCorpse[CORPSE_FRAMERATE]), g_eSettings[SETTING_DEFAULT_FRAMERATE])
+                            parseSetting(DTYPE_FLOAT, szValue, charsmax(szValue), eCorpse[CORPSE_FRAMERATE], charsmax(eCorpse[CORPSE_FRAMERATE]))
                         else if ( equali(szKey, "CORPSE_SPAWN_CHANCE") )
-                            parseSetting(DTYPE_FLOAT, szKey, charsmax(szKey), szValue, charsmax(szValue), eCorpse[CORPSE_SPAWN_CHANCE], charsmax(eCorpse[CORPSE_SPAWN_CHANCE]), g_eSettings[SETTING_DEFAULT_SPAWN_CHANCE])
+                            parseSetting(DTYPE_FLOAT, szValue, charsmax(szValue), eCorpse[CORPSE_SPAWN_CHANCE], charsmax(eCorpse[CORPSE_SPAWN_CHANCE]))
                         else if ( equali(szKey, "CORPSE_MESSAGE") )
                         {
                             if ( !eCorpse[CORPSE_MESSAGE_EXIST] )
@@ -556,7 +530,7 @@ ReadFile()
                                 eCorpse[CORPSE_MESSAGE_COUNT] = 0
                             }
 
-                            parseSetting(DTYPE_ARRAY, szKey, charsmax(szKey), szValue, charsmax(szValue), eCorpse[CORPSE_MESSAGE], charsmax(eCorpse[CORPSE_MESSAGE]), g_eSettings[SETTING_DEFAULT_MESSAGE])
+                            parseSetting(DTYPE_ARRAY_MESSAGE, szValue, charsmax(szValue), eCorpse[CORPSE_MESSAGE], charsmax(eCorpse[CORPSE_MESSAGE]))
                             eCorpse[CORPSE_MESSAGE_COUNT] ++
                         }
                         else if ( equali(szKey, "CORPSE_SOUND") )
@@ -568,15 +542,15 @@ ReadFile()
                                 eCorpse[CORPSE_SOUND_COUNT] = 0
                             }
 
-                            parseSetting(DTYPE_ARRAY_SOUND, szKey, charsmax(szKey), szValue, charsmax(szValue), eCorpse[CORPSE_SOUND], charsmax(eCorpse[CORPSE_SOUND]), g_eSettings[SETTING_DEFAULT_SOUND])
+                            parseSetting(DTYPE_ARRAY_SOUND, szValue, charsmax(szValue), eCorpse[CORPSE_SOUND], charsmax(eCorpse[CORPSE_SOUND]))
                             eCorpse[CORPSE_SOUND_COUNT] ++
                         }
                         else if ( equali(szKey, "CORPSE_SOUND_COOLDOWN") )
-                            parseSetting(DTYPE_FLOAT_RANGE, szKey, charsmax(szKey), szValue, charsmax(szValue), eCorpse[CORPSE_SOUND_COOLDOWN], charsmax(eCorpse[CORPSE_SOUND_COOLDOWN]), g_eSettings[SETTING_DEFAULT_SOUND_COOLDOWN])
+                            parseSetting(DTYPE_FLOAT, szValue, charsmax(szValue), eCorpse[CORPSE_SOUND_COOLDOWN], charsmax(eCorpse[CORPSE_SOUND_COOLDOWN]))
                         else if ( equali(szKey, "CORPSE_MINS") )
-                            parseSetting(DTYPE_VECTOR_FLOAT, szKey, charsmax(szKey), szValue, charsmax(szValue), eCorpse[CORPSE_MINS], charsmax(eCorpse[CORPSE_MINS]))
+                            parseSetting(DTYPE_FLOAT, szValue, charsmax(szValue), eCorpse[CORPSE_MINS], charsmax(eCorpse[CORPSE_MINS]))
                         else if ( equali(szKey, "CORPSE_MAXS") )
-                            parseSetting(DTYPE_VECTOR_FLOAT, szKey, charsmax(szKey), szValue, charsmax(szValue), eCorpse[CORPSE_MAXS], charsmax(eCorpse[CORPSE_MAXS]))
+                            parseSetting(DTYPE_FLOAT, szValue, charsmax(szValue), eCorpse[CORPSE_MAXS], charsmax(eCorpse[CORPSE_MAXS]))
                     }
                 }
             }
@@ -590,11 +564,6 @@ ReadFile()
 
     g_bFileWasRead = true
     fclose(iFile)
-}
-
-public client_authorized(id)
-{
-    set_task(DELAY_ON_CONNECT, "UpdateData", id)
 }
 
 public client_disconnected(id)
@@ -612,15 +581,10 @@ public client_disconnected(id)
     g_ePlayerData[id][PDATA_CORPSE_MENU]   = 0
 }
 
-public UpdateData(id)
-{
-    g_ePlayerData[id][PDATA_OFFSET] = g_eSettings[SETTING_OFFSET_BASE]
-}
-
 public corpseInit()
 {
     if ( g_eSettings[SETTING_CORPSE_LOAD] )
-        loadData()
+        set_task(DELAY_ON_LOAD, "loadData")
 }
 
 public corpseMenu(id, iType)
@@ -1202,7 +1166,7 @@ stock corpseCreate(id, iItem)
     {
         g_ePlayerData[id][PDATA_CORPSE_GHOST] = eCorpse[CORPSE_ID]
         g_ePlayerData[id][PDATA_CORPSE_ACTION] = true
-        g_ePlayerData[id][PDATA_OFFSET] = g_eSettings[SETTING_OFFSET_BASE]
+        g_ePlayerData[id][PDATA_OFFSET] = CORPSE_OFFSET_BASE
 
         eCorpse[CORPSE_FLAGS] |= FLAG_GHOST
     }
@@ -1423,7 +1387,7 @@ public fwdAddToFullPack(es, e, iEnt, iHost, iHostFlags, iPlayer, pSet)
     else if ( eCorpse[CORPSE_FLAGS] & FLAG_GHOST || bHidden )
     {
         set_es(es, ES_RenderMode, kRenderTransAlpha)
-        set_es(es, ES_RenderAmt, g_eSettings[SETTING_GHOST_ALPHA])
+        set_es(es, ES_RenderAmt, CORPSE_GHOST_ALPHA)
     }
 
     return FMRES_IGNORED
@@ -1455,14 +1419,14 @@ public fwdPreThink(id)
         {
             if ( iButton & IN_ATTACK )
             {
-                g_ePlayerData[id][PDATA_OFFSET]      += g_eSettings[SETTING_OFFSET_STEP]
-                g_ePlayerData[id][PDATA_OFFSET]      = floatclamp(g_ePlayerData[id][PDATA_OFFSET], g_eSettings[SETTING_OFFSET][0], g_eSettings[SETTING_OFFSET][1])
+                g_ePlayerData[id][PDATA_OFFSET]      += CORPSE_OFFSET_STEP
+                g_ePlayerData[id][PDATA_OFFSET]      = floatclamp(g_ePlayerData[id][PDATA_OFFSET], CORPSE_OFFSET_MIN, CORPSE_OFFSET_MAX)
                 g_ePlayerData[id][PDATA_NEXT_OFFSET] = fCurrentTime + 0.1
             }
             else if ( iButton & IN_ATTACK2 )
             {
-                g_ePlayerData[id][PDATA_OFFSET]      -= g_eSettings[SETTING_OFFSET_STEP]
-                g_ePlayerData[id][PDATA_OFFSET]      = floatclamp(g_ePlayerData[id][PDATA_OFFSET], g_eSettings[SETTING_OFFSET][0], g_eSettings[SETTING_OFFSET][1])
+                g_ePlayerData[id][PDATA_OFFSET]      -= CORPSE_OFFSET_STEP
+                g_ePlayerData[id][PDATA_OFFSET]      = floatclamp(g_ePlayerData[id][PDATA_OFFSET], CORPSE_OFFSET_MIN, CORPSE_OFFSET_MAX)
                 g_ePlayerData[id][PDATA_NEXT_OFFSET] = fCurrentTime + 0.1
             }
         }
@@ -1539,7 +1503,7 @@ stock corpseCheck(id)
     global_get(glb_v_forward, fVec2)
 
     iBest = -1
-    fBestDist = g_eSettings[SETTING_CORPSE_CHECK]
+    fBestDist = CORPSE_CHECK
     for ( new i = 0; i < g_iCorpse; i ++ )
     {
         ArrayGetArray(g_aCorpse, i, eCorpse)
@@ -1731,9 +1695,9 @@ stock corpseSound(iEnt, iSound, bool:bPlayer = true)
 
     switch( iSound )
     {
-        case SOUND_MENU_NAV:    copy(szSample, charsmax(szSample), g_eSettings[SETTING_SOUND_MENU_NAV])
-        case SOUND_MENU_REMOVE: copy(szSample, charsmax(szSample), g_eSettings[SETTING_SOUND_MENU_REMOVE])
-        case SOUND_MENU_ALERT:  copy(szSample, charsmax(szSample), g_eSettings[SETTING_SOUND_MENU_ALERT])
+        case SOUND_MENU_NAV:    copy(szSample, charsmax(szSample), SOUND_NAV)
+        case SOUND_MENU_REMOVE: copy(szSample, charsmax(szSample), SOUND_REMOVE)
+        case SOUND_MENU_ALERT:  copy(szSample, charsmax(szSample), SOUND_ALERT)
     }
 
     if ( bPlayer )
@@ -1764,89 +1728,81 @@ stock corpseKill(iEnt)
         set_pev(iEnt, pev_flags, pev(iEnt, pev_flags) | FL_KILLME)
 }
 
-stock parseSetting(iType, szKey[], iKeyLen, szValue[], iValueLen, any:output[], iOutputLen, const any:fallback[] = {0.0, 0.0})
+stock parseSetting(iType, szValue[], iValueLen, any:aOutput[], iOutputLength)
 {
     switch ( iType )
     {
-        case DTYPE_FLOAT_RANGE:
+        case DTYPE_INT:
         {
-            strtok(szValue, szKey, iKeyLen, szValue, iValueLen, ' ')
-            output[0] = str_to_float(szKey)
-            output[1] = str_to_float(szValue)
+            new szTok[MAX_VALUE_LENGTH], szTmp[MAX_VALUE_LENGTH], iCounter
+            copy(szTmp, charsmax(szTmp), szValue)
 
-            if ( output[0] < 0.0 ) output[0] = fallback[0]
-            if ( output[1] < 0.0 ) output[1] = fallback[1]
+            strtok(szTmp, szTok, charsmax(szTok), szTmp, charsmax(szTmp), ' ')
+            trim(szTok)
+            while ( szTok[0] )
+            {
+                aOutput[iCounter ++] = str_to_num(szTok)
+
+                strtok(szTmp, szTok, charsmax(szTok), szTmp, charsmax(szTmp), ' ')
+                trim(szTok)
+            }
         }
         case DTYPE_FLOAT:
         {
-            output[0] = str_to_float(szValue)
-            if ( output[0] < 0.0 ) output[0] = fallback[0]
-        }
-        case DTYPE_INT_RANGE:
-        {
-            strtok(szValue, szKey, iKeyLen, szValue, iValueLen, ' ')
-            output[0] = str_to_num(szKey)
-            output[1] = str_to_num(szValue)
+            new szTok[MAX_VALUE_LENGTH], szTmp[MAX_VALUE_LENGTH], iCounter
+            copy(szTmp, charsmax(szTmp), szValue)
 
-            if ( output[0] < 0 ) output[0] = fallback[0]
-            if ( output[1] < 0 ) output[1] = fallback[1]
-        }
-        case DTYPE_INT:
-        {
-            output[0] = str_to_num(szValue)
-            if ( output[0] < 0 ) output[0] = fallback[0]
-        }
-        case DTYPE_BOOL:
-        {
-            output[0] = bool:str_to_num(szValue)
+            strtok(szTmp, szTok, charsmax(szTok), szTmp, charsmax(szTmp), ' ')
+            trim(szTok)
+            while ( szTok[0] )
+            {
+                aOutput[iCounter ++] = str_to_float(szTok)
+
+                strtok(szTmp, szTok, charsmax(szTok), szTmp, charsmax(szTmp), ' ')
+                trim(szTok)
+            }
         }
         case DTYPE_FLAGS:
         {
-            output[0] = read_flags(szValue)
-        }
-        case DTYPE_VECTOR:
-        {
-            strtok(szValue, szKey, iKeyLen, szValue, iValueLen, ' ')
-            output[0] = str_to_num(szKey)
-
-            strtok(szValue, szKey, iKeyLen, szValue, iValueLen, ' ')
-            output[1] = str_to_num(szKey)
-            output[2] = str_to_num(szValue)
-        }
-        case DTYPE_VECTOR_FLOAT:
-        {
-            strtok(szValue, szKey, iKeyLen, szValue, iValueLen, ' ')
-            output[0] = str_to_float(szKey)
-
-            strtok(szValue, szKey, iKeyLen, szValue, iValueLen, ' ')
-            output[1] = str_to_float(szKey)
-            output[2] = str_to_float(szValue)
-        }
-        case DTYPE_ARRAY:
-        {
-            replace_all(szValue, iValueLen, "^"", " ")
-            replace_all(szValue, iValueLen, "^^n", "^n")
-            ArrayPushString(output[0], szValue)
-        }
-        case DTYPE_ARRAY_SOUND:
-        {
-            ArrayPushString(output[0], szValue)
-            if ( !g_bFileWasRead ) precache_sound(szValue)
+            aOutput[0] = read_flags(szValue)
         }
         case DTYPE_STRING_MODEL:
         {
-            copy(output, iOutputLen, szValue)
+            copy(aOutput, iOutputLength, szValue)
             if ( !g_bFileWasRead ) precache_model(szValue)
         }
         case DTYPE_STRING_SOUND:
         {
-            copy(output, iOutputLen, szValue)
+            copy(aOutput, iOutputLength, szValue)
             if ( !g_bFileWasRead ) precache_sound(szValue)
         }
-        case DTYPE_STRING_SPRITE:
+        case DTYPE_ARRAY_MESSAGE:
+        {
+            replace_all(szValue, iValueLen, "^"", " ")
+            replace_all(szValue, iValueLen, "^^n", "^n")
+            ArrayPushString(aOutput[0], szValue)
+        }
+        case DTYPE_ARRAY_MODEL:
         {
             if ( !g_bFileWasRead )
-                output[0] = precache_model(szValue)
+                precache_model(szValue)
+
+            ArrayPushString(aOutput[0], szValue)
+        }
+        case DTYPE_ARRAY_SOUND:
+        {
+            ArrayPushString(aOutput[0], szValue)
+            if ( !g_bFileWasRead ) precache_sound(szValue)
+        }
+        case DTYPE_STRING_MODEL_ID:
+        {
+            if ( !g_bFileWasRead )
+                aOutput[0] = precache_model(szValue)
+        }
+        case DTYPE_ARRAY_MODEL_ID:
+        {
+            if ( !g_bFileWasRead )
+                ArrayPushCell(aOutput[0], precache_model(szValue))
         }
     }
 }
@@ -1860,3 +1816,13 @@ stock LogConfigError(const iLine, const szText[], any:...)
 }
 
 
+
+stock EnableForward()
+{
+    EnableHamForward(g_iFwdPreThink)
+}
+
+stock DisableForward()
+{
+    DisableHamForward(g_iFwdPreThink)
+}

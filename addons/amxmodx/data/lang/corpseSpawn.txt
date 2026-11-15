@@ -23,12 +23,17 @@ CORPSE_HIDDEN                       = \r[HIDDEN]
 CORPSE_MENU_TITLE                   = \dCorpse Spawn - Version \y%s
 CORPSE_MENU_TITLE_PAGE              = \yPage:\r
 CORPSE_ROOT_CREATE                  = Create Corpse
+CORPSE_ROOT_EDIT                    = Edit Corpse
 CORPSE_ROOT_REMOVE                  = Remove Corpse
+CORPSE_ROOT_SAVE                    = Save Data
 CORPSE_ROOT_SHOW                    = Visibility settings
-CORPSE_ROOT_SAVE                    = Save data
+CORPSE_ROOT_STATUS                  = Status Settings
 CORPSE_ROOT_NOCLIP                  = Status noclip %L
 CORPSE_ROOT_GODMODE                 = Status godmode %L
 CORPSE_ROOT_ROTATE                  = Adjust rotation
+
+CORPSE_EDIT_SHOW                    = Edit Visibility
+CORPSE_EDIT_STATUS                  = Edit Status
 
 CORPSE_SHOW_CURRENT                 = Show Corpse >> %s%s %L
 CORPSE_SHOW_ALL_SHOW                = Show all Corpses
