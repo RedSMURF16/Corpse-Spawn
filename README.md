@@ -1,7 +1,9 @@
 <h1 align="center">Corpse Spawn</h1>
 
 <p align="center">
-  <a href="https://www.youtube.com/watch?v=https://www.youtube.com/watch?v=lSsZbdHcaFE"><img src="https://img.youtube.com/vi/https://www.youtube.com/watch?v=lSsZbdHcaFE/maxresdefault.jpg" alt="Watch on YouTube" width="600"></a>
+  <a href="https://www.youtube.com/watch?v=pctIpSI1R7M">
+    <img src="https://img.youtube.com/vi/pctIpSI1R7M/maxresdefault.jpg" alt="Watch on YouTube" width="600">
+  </a>
 </p>
 
 ## 📝 Description
