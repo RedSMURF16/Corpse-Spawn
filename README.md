@@ -16,7 +16,6 @@ Custom setups are saved per map and automatically loaded on every map start.
 - Team access configurable for Terrorists, CTs, both or disabled
 - Configurable respawn chance per corpse
 - Noclip support for easier placement
-- [color=red]Requires AMX Mod X 1.9.0+[/color]
 
 ## 💬 Commands
 - `say /cs` - Opens the Corpse Spawn menu.
@@ -57,3 +56,5 @@ Custom setups are saved per map and automatically loaded on every map start.
 * v1.1: Added corpse regeneration effect, improved some logic.
 * v1.3: Added interactive messages and ambient sounds per corpse, config improvements.
 ```
+
+[![Watch on YouTube](https://img.shields.io/badge/YouTube-Watch%20video-FF0000?logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=https://www.youtube.com/watch?v=lSsZbdHcaFE)
