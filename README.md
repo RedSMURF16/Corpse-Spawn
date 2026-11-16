@@ -19,6 +19,10 @@ Custom setups are saved per map and automatically loaded on every map start.
 - Configurable respawn chance per corpse
 - Noclip support for easier placement
 
+## 📋 Requirements
+- ReGameDLL
+- AMX Mod X 1.10+
+
 ## 💬 Commands
 - `say /cs` - Opens the Corpse Spawn menu.
 - `say_team /cs` - Opens the Corpse Spawn menu.
