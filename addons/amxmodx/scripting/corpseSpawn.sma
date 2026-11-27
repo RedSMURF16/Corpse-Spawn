@@ -367,15 +367,6 @@ ReadFile()
     new eCorpse[CORPSE]
     if ( g_bFileWasRead )
     {
-        for ( new id = 1; id <= g_iMaxPlayers; id ++ )
-            if ( is_user_connected(id) )
-        for ( new i = 0; i < g_iCorpseConfig; i ++ )
-        {
-            ArrayGetArray(g_aCorpseConfig, i, eCorpse)
-            ArrayDestroy(eCorpse[CORPSE_MESSAGE])
-            ArrayDestroy(eCorpse[CORPSE_SOUND])
-        }
-
         ArrayClear(g_eSettings[SETTING_DEFAULT_MESSAGE])
         ArrayClear(g_eSettings[SETTING_DEFAULT_SOUND])
         ArrayClear(g_aCorpseConfig)
