@@ -1,9 +1,7 @@
 <h1 align="center">Corpse Spawn</h1>
 
 <p align="center">
-  <a href="https://www.youtube.com/watch?v=pctIpSI1R7M">
-    <img src="https://img.youtube.com/vi/pctIpSI1R7M/maxresdefault.jpg" alt="Watch on YouTube" width="600">
-  </a>
+  <img src="images/demo.gif" alt="Corpse Spawn">
 </p>
 
 ## 📝 Description
@@ -18,10 +16,6 @@ Custom setups are saved per map and automatically loaded on every map start.
 - Team access configurable for Terrorists, CTs, both or disabled
 - Configurable respawn chance per corpse
 - Noclip support for easier placement
-
-## 📋 Requirements
-- ReGameDLL
-- AMX Mod X 1.10+
 
 ## 💬 Commands
 - `say /cs` - Opens the Corpse Spawn menu.
